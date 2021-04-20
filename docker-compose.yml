@@ -1,0 +1,16 @@
+---
+version: "3.7"
+
+x-common: &common
+  stdin_open: true # docker run -i
+  tty: true        # docker run -t
+
+services:
+  parser:
+    <<: *common
+    build: aksh-parser
+    container_name: aksh-parser
+    env_file:
+      - .envs/parser.env
+    volumes:
+      - ./aksh-parser:/code
