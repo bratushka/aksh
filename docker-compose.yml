@@ -2,15 +2,49 @@
 version: "3.7"
 
 x-common: &common
+  networks:
+  - aksh-internal
   stdin_open: true # docker run -i
   tty: true        # docker run -t
 
+
 services:
+  api:
+    <<: *common
+    build: aksh-api
+    container_name: aksh-api
+    depends_on:
+    - rdb
+    env_file:
+    - .envs/api.env
+    - .envs/rdb.env
+    ports:
+    - 8000:8000
+    volumes:
+    - ./aksh-api:/code
+    - ./.data/api:/api-data
+
   parser:
     <<: *common
     build: aksh-parser
     container_name: aksh-parser
     env_file:
-      - .envs/parser.env
+    - .envs/parser.env
+    - .envs/rdb.env
     volumes:
-      - ./aksh-parser:/code
+    - ./aksh-parser:/code
+    - ./.data/api:/api-data
+
+  rdb:
+    <<: *common
+    build: aksh-rdb
+    container_name: aksh-rdb
+    env_file:
+    - .envs/rdb.env
+    ports:
+    - 5432:5432
+    volumes:
+    - ./.data/rdb:/var/lib/postgresql/data/
+
+networks:
+  aksh-internal:

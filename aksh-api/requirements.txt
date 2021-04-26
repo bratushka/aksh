@@ -1,0 +1,4 @@
+Django<3.3
+django-filter<2.5
+djangorestframework<3.13
+psycopg2<2.9

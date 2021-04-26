@@ -2,9 +2,3 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Env variables
-.envs
-
-# Parsed data
-.data

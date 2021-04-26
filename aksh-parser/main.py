@@ -1,8 +1,14 @@
+#!/usr/bin/env python
+
+# TODO: make it a FastAPI application
+
 import logging
 import asyncio
-from pathlib import Path
 
-from parsers import sumy
+from parsers import (
+    sumy,
+    # vinnytsia,
+)
 
 
 logging.basicConfig(level=logging.INFO)
@@ -11,12 +17,12 @@ logger = logging.getLogger()
 
 cities = [
     sumy,
+    # vinnytsia,
 ]
 
 
 if __name__ == '__main__':
-    logger.info('Running parsers, %s to go', len(cities))
-    Path('data').mkdir(exist_ok=True)
+    logger.info('Running %s parsers', len(cities))
 
     futures = [city.parse() for city in cities]
     loop = asyncio.get_event_loop()
