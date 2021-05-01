@@ -24,15 +24,17 @@ services:
     - ./aksh-api:/code
     - ./.data/api:/api-data
 
-  parser:
+  async:
     <<: *common
-    build: aksh-parser
-    container_name: aksh-parser
+    build: aksh-async
+    container_name: aksh-async
     env_file:
-    - .envs/parser.env
+    - .envs/async.env
     - .envs/rdb.env
+    ports:
+    - 8001:8001
     volumes:
-    - ./aksh-parser:/code
+    - ./aksh-async:/code
     - ./.data/api:/api-data
 
   rdb:

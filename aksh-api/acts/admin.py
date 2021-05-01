@@ -18,13 +18,14 @@ class ActAdmin(admin.ModelAdmin):
 
     list_display = (
         '__str__',
+        'act_id',
         'forwarded',
         'removed_from_source',
         'needs_inspection',
     )
     list_filter = (
         'issuer',
-        'act_id',
+        'forwarded',
         'removed_from_source',
         'needs_inspection',
     )

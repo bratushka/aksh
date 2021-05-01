@@ -32,3 +32,14 @@ class Act(BaseModel):
     id: int = None
     created: datetime = None
     updated: datetime = None
+
+
+class ActToForward(BaseModel):
+    id: int
+    issuer: str
+    title: str
+    link: str
+    file_name: str
+    files: T.List[str]
+
+    file_content: bytes = None

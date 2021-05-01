@@ -1,5 +1,8 @@
 aiohttp[speedups]<3.8
 aiofile<3.6
+fastapi<0.64
+filetype<1.0.8
 lxml<4.7
 pydantic<1.9
 textract<1.7
+uvicorn[standard]<0.14

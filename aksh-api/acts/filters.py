@@ -6,4 +6,4 @@ from .models import Act
 class ActFilter(filters.FilterSet):
     class Meta:
         model = Act
-        fields = ('removed_from_source',)
+        fields = ('removed_from_source', 'issuer')

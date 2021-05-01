@@ -33,6 +33,10 @@ ACT_ISSUERS = (
 )
 
 
+def _document__file__upload_to(document: 'Document', filename: str) -> str:
+    return f'acts/{document.act.issuer}/{filename}'
+
+
 class Act(DatedModel):
     class Meta:
         unique_together = (('issuer', 'act_id'),)
@@ -60,7 +64,7 @@ class Document(DatedModel):
         max_length=1000,
         null=True,
         blank=True,
-        upload_to='acts',
+        upload_to=_document__file__upload_to,
     )
     last_modified = models.DateTimeField(null=True, blank=True)
 
