@@ -29,5 +29,6 @@ class ActToForwardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Act.objects.filter(
         forwarded=False,
         removed_from_source=False,
+        needs_inspection=False,
     ).exclude(documents__file='').prefetch_related('documents')
     serializer_class = serializers.ActToForwardSerializer

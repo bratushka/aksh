@@ -45,7 +45,7 @@ class API(services.API):
 
     @classmethod
     async def fetch_acts_to_forward(cls) -> T.List[ActToForward]:
-        response = await cls.get('acts/acts-to-forward/')
+        response = await cls.get('acts/acts-to-forward/', timeout=20)
         if not response.ok:
             error_text = f'Error retrieving acts to follow from {cls.URL}'
             raise services.ServiceException(error_text)
@@ -87,8 +87,8 @@ class Interest(services.Interest):
             timeout=10,
         )
         if not response.ok:
-            logger.error('Error forwarding act')
+            logger.error(f'Error forwarding act #{act.id}')
             logger.error(f'Status: {response.status}')
             logger.error(f'Content: {str(response.data)}')
-            error_text = f'Error forwarding act: {act.title}'
+            error_text = f'Error forwarding act: {act.title}: {act.link}'
             raise services.ServiceException(error_text)

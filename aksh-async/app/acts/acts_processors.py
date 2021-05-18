@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import pathlib
 from datetime import datetime
 from email.utils import parsedate_tz
@@ -7,14 +8,83 @@ from email.utils import parsedate_tz
 import typing as T
 
 import aiohttp
-import filetype
+import lxml.html
+import magic
 import textract
 
 from app.acts.structures import Act
+from app.core.services import ServiceException
 from .services import API, Interest
 
 
 logger = logging.getLogger(__name__)
+
+
+CYRILLIC_O = 'о'.encode()
+
+DOC = 'application/msword'
+DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+PDF = 'application/pdf'
+RTF = 'text/rtf'
+TXT = 'text/plain'
+XLS = 'application/vnd.ms-excel'
+XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+
+def read_document(file_path: str) -> bytes:
+    base_kwargs = {'filename': file_path, 'language': 'ukr'}
+    ft = magic.from_file(file_path, mime=True)
+    if ft in TXT:
+        content = textract.process(**base_kwargs)
+    elif ft == DOC:
+        try:
+            content = textract.process(**base_kwargs, extension='doc')
+        except TypeError:
+            # Sometimes this raises when chardet cannot determine the encoding.
+            # @TODO: find a solution
+            # /api-data/acts/Sumy/514-Dodatok_1._Ocikuvani_rezultati.doc
+            # /api-data/acts/Sumy/Dodatok_1._Ocikuvani_rezultati.doc
+            # /api-data/acts/Dnipro/wsGetTextPublicDocumentpID359609
+            return b''
+    elif ft == DOCX:
+        content = textract.process(**base_kwargs, extension='docx')
+    elif ft == PDF:
+        _kwargs = {**base_kwargs, 'extension': 'pdf'}
+        content = textract.process(**_kwargs)
+
+        # If the document doesn't contain the ukrainian letter
+        # `о` - probably it's a bunch of scanned paper sheets,
+        # so use tesseract
+        if CYRILLIC_O not in content:
+            _kwargs['method'] = 'tesseract'
+            content = textract.process(**_kwargs)
+    elif ft == RTF:
+        # noinspection SpellCheckingInspection
+        html = os.popen(f'unrtf {file_path}').read()
+        doc = lxml.html.document_fromstring(html)
+        content = doc.text_content().strip().encode()
+    elif ft in {XLS, XLSX}:
+        # We're not interested in spreadsheets data
+        return b''
+    else:
+        raise NotImplementedError(f'Check {file_path} type')
+
+    # If the document doesn't contain the ukrainian letter `о`
+    if CYRILLIC_O not in content:
+        message = f'Check extraction from {file_path}'
+        raise Exception(message)
+
+    return content
+# from app.acts.acts_processors import read_document
+# import pathlib, magic, textract, contextlib
+# paths = sorted(pathlib.Path('/api-data/acts/Dnipro').iterdir())
+# n = len(paths)
+# m = len(str(n))
+# for i, f in enumerate(paths, 1):
+#     file_path = str(f)
+#     print(f'{str(i).rjust(m)}/{n}:', file_path)
+#     with contextlib.suppress(TypeError):
+#         read_document(file_path)
 
 
 class ActsProcessor:
@@ -126,36 +196,15 @@ class ActsProcessor:
 
             the_file_to_send = b''
             for file in act.files:
-                try:
-                    file_path = f'/api-data/{file}'
-                    ft = filetype.guess_mime(file_path)
-                    if ft is None:
-                        content = textract.process(file_path, language='ukr')
-                    elif ft == 'application/pdf':
-                        _kwargs = {
-                            'filename': '/code/passport.pdf',
-                            'extension': 'pdf',
-                            'language': 'ukr',
-                        }
-                        content = textract.process(**_kwargs)
-
-                        # When a document is too short - probably it's a bunch
-                        # of scanned paper sheets, so use tesseract
-                        if len(content) < 100:
-                            _kwargs['method'] = 'tesseract'
-                            content = textract.process(**_kwargs)
-                    else:
-                        raise NotImplementedError
-
-                except TypeError:
-                    # Sometime textract fails
-                    # https://github.com/deanmalmgren/textract/issues/261
-                    logger.warning('textract failed to extract from %s', file)
-                    continue
+                content = read_document(f'/api-data/{file}')
                 the_file_to_send = b'.\n\n\n'.join((the_file_to_send, content))
-            act.file_content = the_file_to_send[2:]
+            act.file_content = the_file_to_send[4:]
 
-            await Interest.forward_act(act)
+            try:
+                await Interest.forward_act(act)
+            except Interest.ServiceException:
+                continue
+
             await API.change_act(act.id, forwarded=True)
 
         await self._main_spy(f'{total} acts forwarded')
@@ -168,5 +217,5 @@ class ActsProcessor:
             futures.append(self._parse_acts_and_store_documents(issuer, parser))
 
         await asyncio.gather(*futures)
-        # await self.forward_the_docs()
-        await self.message_queue.put('done')
+        await self.forward_the_docs()
+        await self.message_queue.put({'done': True})

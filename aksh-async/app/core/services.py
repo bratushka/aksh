@@ -27,6 +27,7 @@ class ServiceException(Exception):
 
 class Service:
     """Common parent for all services."""
+    ServiceException = ServiceException
 
 
 class JSONAPI(Service):

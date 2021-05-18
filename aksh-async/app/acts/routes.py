@@ -16,13 +16,13 @@ async def ws(websocket: WebSocket):
     queue = asyncio.Queue()
     acts_processor = ActsProcessor(
         queue,
-        # ('Sumy', parsers.sumy.parse),
+        (parsers.sumy.ISSUER, parsers.sumy.parse),
         (parsers.dnipro.ISSUER, parsers.dnipro.parse),
     )
     asyncio.ensure_future(acts_processor.do_the_job())
 
     while True:
-        message = await queue.get()
-        if message == 'done':
+        message: dict = await queue.get()
+        if message.get('done', False):
             break
         await websocket.send_json(message)

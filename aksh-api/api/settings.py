@@ -136,6 +136,8 @@ STATIC_URL = '/static/'
 
 MEDIA_ROOT = '/api-data/'
 
+MEDIA_URL = '/media/'
+
 
 # DRF
 
